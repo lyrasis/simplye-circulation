@@ -20,6 +20,7 @@ from core.log import LogConfiguration
 from core.util import LanguageCodes
 from flask_babel import Babel
 
+from plugins import get_installed_plugins
 
 app = Flask(__name__)
 app._db = None
@@ -69,7 +70,10 @@ def run(url=None):
         import socket
         socket.setdefaulttimeout(None)
 
+    plugins = get_installed_plugins()
+    for plugin in plugins:
+        plugin.enable_route(app)
+
     logging.info("Starting app on %s:%s", host, port)
     app.run(debug=debug, host=host, port=port, threaded=True)
-
 
