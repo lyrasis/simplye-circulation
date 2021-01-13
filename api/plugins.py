@@ -21,26 +21,37 @@ def get_installed_plugins():
                         package.key, attr)
 
             if valid:
-                plugins.append(Plugin(package.key, module.routes, module.run_func))
+                plugins.append(Plugin(package.key, module.routes, module.scripts))
 
     return plugins
 
 
 class Plugin(object):
     """ A class repreting to represent plugins """
-    def __init__(self, name, routes, functions):
+    PLUGIN_PATH = "/plugin"
+
+    def __init__(self, name, routes, scripts):
         self.name = name
         self.routes = routes
-        self.functions = functions
+        self.scripts = scripts
 
     @classmethod
     def required_attributes(cls):
-        return ["routes", "run_func"]
+        return ["routes", "scripts"]
 
     def enable_route(self, app):
         for route in self.routes:
             logging.info("Enabling plugin %s", self.name)
             defaults = {"app": app}
+            try:
+                if route["rule"].startswith("/"):
+                    route["rule"] = self.PLUGIN_PATH + route["rule"]
+                else:
+                    route["rule"] = self.PLUGIN_PATH + "/" + route["rule"]
+            except Exception as er:
+                logging.error("Plugin %s: Unable to create route. Er: ", self.name, er)
+                continue
+
             try:
                 app.add_url_rule(defaults=defaults, **route)
             except Exception as er:
@@ -49,7 +60,7 @@ class Plugin(object):
 
             logging.info("Plugin %s: activate", self.name)
 
-    def run_functions(self):
-        for function in self.functions:
-            function["func"]().run()
+    def run_scripts(self):
+        for script in self.scripts:
+            script().run()
 
