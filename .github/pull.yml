@@ -1,5 +1,5 @@
-# Configuration for the pull bot this keeps our repo in sync 
-# with the upstream NYPL repo by creating PRs when there are 
+# Configuration for the pull bot this keeps our repo in sync
+# with the upstream NYPL repo by creating PRs when there are
 # changes upstream.
 #
 # Docs here for this file:
