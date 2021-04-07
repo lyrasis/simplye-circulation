@@ -106,8 +106,9 @@ jobs:
         run: tox
         working-directory: core
 
-  build-docker:
-    name: Build and push docker images
+
+  build-docker-exec:
+    name: Build and push circ-exec docker image
     runs-on: ubuntu-latest
     needs: [test-circulation, test-core]
 
@@ -123,11 +124,96 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Branch name
-        id: branch_name
-        run: |
-          echo ::set-output name=SOURCE_BRANCH::$(echo $GITHUB_REF | sed 's|refs/heads/||' | sed 's|/|-|')
-          echo ::set-output name=SOURCE_TAG::$(echo $GITHUB_REF | sed 's|refs/tags/||' | sed 's|/|-|')
+      - name: Generate tags for circ-exec image
+        id: exec-tags
+        uses: crazy-max/ghaction-docker-meta@v2
+        with:
+          images: ${{ github.repository_owner }}/circ-exec
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build & push circ-exec image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.exec
+          push: true
+          tags: ${{ steps.exec-tags.outputs.tags }}
+          build-args: |
+            repo=${{ github.repository }}
+            version=${{ github.sha }}
+
+
+  build-docker-scripts:
+    name: Build and push circ-scripts docker image
+    runs-on: ubuntu-latest
+    needs: [test-circulation, test-core]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate tags for circ-scripts image
+        id: scripts-tags
+        uses: crazy-max/ghaction-docker-meta@v2
+        with:
+          images: ${{ github.repository_owner }}/circ-scripts
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build & push circ-scripts image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.scripts
+          push: true
+          tags: ${{ steps.scripts-tags.outputs.tags }}
+          build-args: |
+            repo=${{ github.repository }}
+            version=${{ github.sha }}
+
+
+  build-docker-webapp:
+    name: Build and push circ-webapp docker image
+    runs-on: ubuntu-latest
+    needs: [test-circulation, test-core]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate tags for circ-webapp image
+        id: webapp-tags
+        uses: crazy-max/ghaction-docker-meta@v2
+        with:
+          images: ${{ github.repository_owner }}/circ-webapp
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
 
       - name: Build and push circ-web image
         uses: docker/build-push-action@v2
@@ -135,18 +221,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.webapp
           push: true
-          tags: ${{ github.repository_owner }}/circ-webapp:${{ steps.branch_name.outputs.SOURCE_BRANCH }}
-          build-args: |
-            repo=${{ github.repository }}
-            version=${{ github.sha }}
-
-      - name: Build and push circ-scripts image
-        uses: docker/build-push-action@v2
-        with:
-          context: ./docker
-          file: ./docker/Dockerfile.scripts
-          push: true
-          tags: ${{ github.repository_owner }}/circ-scripts:${{ steps.branch_name.outputs.SOURCE_BRANCH }}
+          tags: ${{ steps.webapp-tags.outputs.tags }}
           build-args: |
             repo=${{ github.repository }}
             version=${{ github.sha }}
