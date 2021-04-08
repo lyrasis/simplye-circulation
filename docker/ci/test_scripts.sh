@@ -2,6 +2,9 @@
 
 set -ex
 
+# Wait for the container to start services before running tests
+sleep 30;
+
 dir=$(dirname "${BASH_SOURCE[0]}")
 source "${dir}/check_service_status.sh"
 
